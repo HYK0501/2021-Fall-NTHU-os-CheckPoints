@@ -2,7 +2,7 @@
  * file: testcoop.c 
  */
 #include <8051.h>
-#include "cooperative.h"
+#include "preemptive.h"
 
 /* 
  * @@@ [2pt] 
@@ -28,23 +28,22 @@ void Producer(void) {
          * initialize producer data structure, and then enter
          * an infinite loop (does not return)
          */
-        SharedBuffer = 'A';
+        __asm
+        MOV 0X3E,#0X40
+        __endasm;
         while (1) {
                 /* @@@ [6 pt]
                  * wait for the buffer to be available, 
                  * and then write the new data into the buffer */
                  if(BufferFull==1){
-                 	ThreadYield();
                  }
                  else{
-                 	
-                 	
+                 	SharedBuffer +=1;
                  	if(SharedBuffer >  'Z'){
                  		SharedBuffer = 'A';
                  	}
                  	BufferFull = 1;
-                 	ThreadYield();
-                 	SharedBuffer +=1;
+                 	
                  }
              }
 }
@@ -57,7 +56,9 @@ void Producer(void) {
  */
 void Consumer(void) {
         /* @@@ [2 pt] initialize Tx for polling */
-        TMOD = 0x20;
+        __asm
+        ORL 0X89 , #0X20
+        __endasm;
         TH1 = (char)-6;
         SCON = 0x50;
         TR1 = 1;
@@ -77,7 +78,6 @@ void Consumer(void) {
                  	BufferFull = 0;
                  	TI = 0 ;
                  }
-        	ThreadYield();
         }
 }
 
@@ -112,6 +112,11 @@ void _sdcc_gsinit_startup(void) {
 void _mcs51_genRAMCLEAR(void) {}
 void _mcs51_genXINIT(void) {}
 void _mcs51_genXRAMCLEAR(void) {}
+void timer0_ISR(void) __interrupt(1) {
+        __asm
+                ljmp _myTimer0Handler
+        __endasm;
+}
 
 
 

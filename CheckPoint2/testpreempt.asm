@@ -2,12 +2,13 @@
 ; File Created by SDCC : free open source ANSI-C Compiler
 ; Version 3.8.0 #10562 (Linux)
 ;--------------------------------------------------------
-	.module testcoop
+	.module testpreempt
 	.optsdcc -mmcs51 --model-small
 	
 ;--------------------------------------------------------
 ; Public variables in this module
 ;--------------------------------------------------------
+	.globl _timer0_ISR
 	.globl __mcs51_genXRAMCLEAR
 	.globl __mcs51_genXINIT
 	.globl __mcs51_genRAMCLEAR
@@ -15,7 +16,6 @@
 	.globl _main
 	.globl _Consumer
 	.globl _Producer
-	.globl _ThreadYield
 	.globl _ThreadCreate
 	.globl _CY
 	.globl _AC
@@ -287,6 +287,9 @@ __start__stack:
 	.area HOME    (CODE)
 __interrupt_vect:
 	ljmp	__sdcc_gsinit_startup
+	reti
+	.ds	7
+	ljmp	_timer0_ISR
 ;--------------------------------------------------------
 ; global & static initialisations
 ;--------------------------------------------------------
@@ -317,7 +320,7 @@ __sdcc_program_startup:
 ;------------------------------------------------------------
 ;Allocation info for local variables in function 'Producer'
 ;------------------------------------------------------------
-;	testcoop.c:25: void Producer(void) {
+;	testpreempt.c:25: void Producer(void) {
 ;	-----------------------------------------
 ;	 function Producer
 ;	-----------------------------------------
@@ -330,128 +333,117 @@ _Producer:
 	ar2 = 0x02
 	ar1 = 0x01
 	ar0 = 0x00
-;	testcoop.c:31: SharedBuffer = 'A';
-	mov	_SharedBuffer,#0x41
-;	testcoop.c:32: while (1) {
+;	testpreempt.c:33: __endasm;
+	MOV	0X3E,#0X40
+;	testpreempt.c:34: while (1) {
 00107$:
-;	testcoop.c:36: if(BufferFull==1){
+;	testpreempt.c:38: if(BufferFull==1){
 	mov	a,#0x01
 	cjne	a,_BufferFull,00123$
 	dec	a
 	cjne	a,(_BufferFull + 1),00123$
-	sjmp	00124$
-00123$:
-	sjmp	00104$
-00124$:
-;	testcoop.c:37: ThreadYield();
-	lcall	_ThreadYield
 	sjmp	00107$
-00104$:
-;	testcoop.c:42: if(SharedBuffer >  'Z'){
-	mov	a,_SharedBuffer
-	add	a,#0xff - 0x5a
-	jnc	00102$
-;	testcoop.c:43: SharedBuffer = 'A';
-	mov	_SharedBuffer,#0x41
-00102$:
-;	testcoop.c:45: BufferFull = 1;
-	mov	_BufferFull,#0x01
-	mov	(_BufferFull + 1),#0x00
-;	testcoop.c:46: ThreadYield();
-	lcall	_ThreadYield
-;	testcoop.c:47: SharedBuffer +=1;
+00123$:
+;	testpreempt.c:41: SharedBuffer +=1;
 	mov	a,_SharedBuffer
 	mov	r7,a
 	inc	a
 	mov	_SharedBuffer,a
-;	testcoop.c:50: }
+;	testpreempt.c:42: if(SharedBuffer >  'Z'){
+	mov	a,_SharedBuffer
+	add	a,#0xff - 0x5a
+	jnc	00102$
+;	testpreempt.c:43: SharedBuffer = 'A';
+	mov	_SharedBuffer,#0x41
+00102$:
+;	testpreempt.c:45: BufferFull = 1;
+	mov	_BufferFull,#0x01
+	mov	(_BufferFull + 1),#0x00
+;	testpreempt.c:49: }
 	sjmp	00107$
 ;------------------------------------------------------------
 ;Allocation info for local variables in function 'Consumer'
 ;------------------------------------------------------------
-;	testcoop.c:58: void Consumer(void) {
+;	testpreempt.c:57: void Consumer(void) {
 ;	-----------------------------------------
 ;	 function Consumer
 ;	-----------------------------------------
 _Consumer:
-;	testcoop.c:60: TMOD = 0x20;
-	mov	_TMOD,#0x20
-;	testcoop.c:61: TH1 = (char)-6;
+;	testpreempt.c:61: __endasm;
+	ORL	0X89 , #0X20
+;	testpreempt.c:62: TH1 = (char)-6;
 	mov	_TH1,#0xfa
-;	testcoop.c:62: SCON = 0x50;
+;	testpreempt.c:63: SCON = 0x50;
 	mov	_SCON,#0x50
-;	testcoop.c:63: TR1 = 1;
+;	testpreempt.c:64: TR1 = 1;
 ;	assignBit
 	setb	_TR1
-;	testcoop.c:64: TI = 1;
+;	testpreempt.c:65: TI = 1;
 ;	assignBit
 	setb	_TI
-;	testcoop.c:65: while (1) {
+;	testpreempt.c:66: while (1) {
 00107$:
-;	testcoop.c:72: if(BufferFull==1){
+;	testpreempt.c:73: if(BufferFull==1){
 	mov	a,#0x01
 	cjne	a,_BufferFull,00123$
 	dec	a
 	cjne	a,(_BufferFull + 1),00123$
 	sjmp	00124$
 00123$:
-	sjmp	00105$
+	sjmp	00107$
 00124$:
-;	testcoop.c:74: while(!TI){}
+;	testpreempt.c:75: while(!TI){}
 00101$:
 	jnb	_TI,00101$
-;	testcoop.c:76: SBUF = SharedBuffer;
+;	testpreempt.c:77: SBUF = SharedBuffer;
 	mov	_SBUF,_SharedBuffer
-;	testcoop.c:77: BufferFull = 0;
+;	testpreempt.c:78: BufferFull = 0;
 	clr	a
 	mov	_BufferFull,a
 	mov	(_BufferFull + 1),a
-;	testcoop.c:78: TI = 0 ;
+;	testpreempt.c:79: TI = 0 ;
 ;	assignBit
 	clr	_TI
-00105$:
-;	testcoop.c:80: ThreadYield();
-	lcall	_ThreadYield
-;	testcoop.c:82: }
+;	testpreempt.c:82: }
 	sjmp	00107$
 ;------------------------------------------------------------
 ;Allocation info for local variables in function 'main'
 ;------------------------------------------------------------
-;	testcoop.c:89: void main(void) {
+;	testpreempt.c:89: void main(void) {
 ;	-----------------------------------------
 ;	 function main
 ;	-----------------------------------------
 _main:
-;	testcoop.c:97: SharedBuffer = ' ';
+;	testpreempt.c:97: SharedBuffer = ' ';
 	mov	_SharedBuffer,#0x20
-;	testcoop.c:98: BufferFull = 0 ;
+;	testpreempt.c:98: BufferFull = 0 ;
 	clr	a
 	mov	_BufferFull,a
 	mov	(_BufferFull + 1),a
-;	testcoop.c:99: ThreadCreate(Producer);
+;	testpreempt.c:99: ThreadCreate(Producer);
 	mov	dptr,#_Producer
 	lcall	_ThreadCreate
-;	testcoop.c:102: __endasm;
+;	testpreempt.c:102: __endasm;
 	MOV	SP,0x34
-;	testcoop.c:103: Consumer();         
-;	testcoop.c:104: }
+;	testpreempt.c:103: Consumer();         
+;	testpreempt.c:104: }
 	ljmp	_Consumer
 ;------------------------------------------------------------
 ;Allocation info for local variables in function '_sdcc_gsinit_startup'
 ;------------------------------------------------------------
-;	testcoop.c:106: void _sdcc_gsinit_startup(void) {
+;	testpreempt.c:106: void _sdcc_gsinit_startup(void) {
 ;	-----------------------------------------
 ;	 function _sdcc_gsinit_startup
 ;	-----------------------------------------
 __sdcc_gsinit_startup:
-;	testcoop.c:109: __endasm;
+;	testpreempt.c:109: __endasm;
 	ljmp	_Bootstrap
-;	testcoop.c:110: }
+;	testpreempt.c:110: }
 	ret
 ;------------------------------------------------------------
 ;Allocation info for local variables in function '_mcs51_genRAMCLEAR'
 ;------------------------------------------------------------
-;	testcoop.c:112: void _mcs51_genRAMCLEAR(void) {}
+;	testpreempt.c:112: void _mcs51_genRAMCLEAR(void) {}
 ;	-----------------------------------------
 ;	 function _mcs51_genRAMCLEAR
 ;	-----------------------------------------
@@ -460,7 +452,7 @@ __mcs51_genRAMCLEAR:
 ;------------------------------------------------------------
 ;Allocation info for local variables in function '_mcs51_genXINIT'
 ;------------------------------------------------------------
-;	testcoop.c:113: void _mcs51_genXINIT(void) {}
+;	testpreempt.c:113: void _mcs51_genXINIT(void) {}
 ;	-----------------------------------------
 ;	 function _mcs51_genXINIT
 ;	-----------------------------------------
@@ -469,12 +461,30 @@ __mcs51_genXINIT:
 ;------------------------------------------------------------
 ;Allocation info for local variables in function '_mcs51_genXRAMCLEAR'
 ;------------------------------------------------------------
-;	testcoop.c:114: void _mcs51_genXRAMCLEAR(void) {}
+;	testpreempt.c:114: void _mcs51_genXRAMCLEAR(void) {}
 ;	-----------------------------------------
 ;	 function _mcs51_genXRAMCLEAR
 ;	-----------------------------------------
 __mcs51_genXRAMCLEAR:
 	ret
+;------------------------------------------------------------
+;Allocation info for local variables in function 'timer0_ISR'
+;------------------------------------------------------------
+;	testpreempt.c:115: void timer0_ISR(void) __interrupt(1) {
+;	-----------------------------------------
+;	 function timer0_ISR
+;	-----------------------------------------
+_timer0_ISR:
+;	testpreempt.c:118: __endasm;
+	ljmp	_myTimer0Handler
+;	testpreempt.c:119: }
+	reti
+;	eliminated unneeded mov psw,# (no regs used in bank)
+;	eliminated unneeded push/pop psw
+;	eliminated unneeded push/pop dpl
+;	eliminated unneeded push/pop dph
+;	eliminated unneeded push/pop b
+;	eliminated unneeded push/pop acc
 	.area CSEG    (CODE)
 	.area CONST   (CODE)
 	.area XINIT   (CODE)
